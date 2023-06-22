@@ -7,22 +7,34 @@ export default class KlarnaSessions {
     this.klarna = new KlarnaApi();
   }
 
-  async updateSession(order: any, cart: any, cart_params: any) {
+  async getSession(sessionId: string) {
     try {
-      let sessionBody = await this.sessionBody(order, cart);
 
-      const data = await this.klarna.post(
-        `/payments/v1/sessions${cart_params.klarna.session_id}`,
-        sessionBody,
+      const data = await this.klarna.get(
+        `/payments/v1/sessions/${sessionId}`
       );
       console.log(data);
-      return sessionBody;
+      return data;
     } catch (error) {
       return error;
     }
   }
 
-  async sessionBody(order: any, cart: any) {
+  async updateSession(sessionId: string, payload: any) {
+    try {
+
+      const data = await this.klarna.post(
+        `/payments/v1/sessions/${sessionId}`,
+        payload,
+      );
+      console.log(data);
+      return data;
+    } catch (error) {
+      return error;
+    }
+  }
+
+  async sessionBody(shop: string, order: any, cart: any) {
     try {
       if (order.shipping.length !== 0) {
         // Handle shipping items
@@ -43,7 +55,7 @@ export default class KlarnaSessions {
         const cartItems = cart.line_items.map((x: any) => {
           return {
             reference: x.platform_variant_id,
-            name: x.title,
+            name: x.product_title,
             quantity: x.quantity,
             unit_price: x.price,
             tax_rate: 0,
@@ -71,6 +83,8 @@ export default class KlarnaSessions {
           order_tax_amount: 0,
           purchase_country: order.customer.billing_address.country_code,
           purchase_currency: order.currency,
+          merchant_data: shop,
+          merchant_reference1: order.public_order_id,
           shipping_address: {
             // Shipping address details
           },
@@ -81,6 +95,7 @@ export default class KlarnaSessions {
         // Handle cart items
         const cartItems = cart.line_items.map((x: any) => {
           return {
+            image_url: x.image,
             reference: x.platform_variant_id,
             name: x.title,
             quantity: x.quantity,

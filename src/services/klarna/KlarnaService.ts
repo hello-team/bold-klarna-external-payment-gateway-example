@@ -23,18 +23,22 @@ export default class KlarnaService {
     return this.payments.preAuthPayment(order, payment);
   }
 
-  async capturePayment(order: any, payment: any) {
-    return this.orders.capturePayment(order, payment);
+  async capturePayment(orderId: string, captured_amount: number, order_lines: any) {
+    return this.orders.capturePayment(orderId, captured_amount, order_lines);
   }
 
-  async updateSession(order: any, cart: any, cart_params: any) {
-    return this.sessions.updateSession(order, cart, cart_params);
+
+  async getSession(sessionId: string) {
+    return this.sessions.getSession(sessionId);
   }
 
-  async sessionBody(order: any, cart: any) {
-    return this.sessions.sessionBody(order, cart);
+  async updateSession(sessionId: string, payload: any) {
+    return this.sessions.updateSession(sessionId, payload);
   }
 
+  async sessionBody(shop: string, order: any, cart: any){
+    return this.sessions.sessionBody(shop, order, cart)
+  }
   async createSession(session: any) {
     return this.sessions.createSession(session);
   }

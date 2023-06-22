@@ -38,17 +38,17 @@ export default class ExternalPaymentGateways {
     }
   }
 
-  async getExternalPaymentGateway(shopSlug: string, gatewayId: string): Promise<any> {
+  async getExternalPaymentGateway(shopSlug: string): Promise<any> {
     try {
       const document = await this.boldAccessTokens.getShopDocument(shopSlug);
       this.bold.setAccessToken(document.access_token);
 
-      const endpoint = `/checkout/shop/${document.shop_identifier}/external_payment_gateways/${gatewayId}`;
+      const endpoint = `/checkout/shop/${document.shop_identifier}/external_payment_gateways`;
       const response = await this.bold.get(endpoint);
       return response;
     } catch (error) {
       console.error('Error retrieving external payment gateway:', error);
-      throw error;
+      return error
     }
   }
 

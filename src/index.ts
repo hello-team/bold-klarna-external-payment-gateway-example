@@ -10,6 +10,7 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs/promises';
 import ExampleController from './controllers/klarna/ExampleController';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 
 import { CHECKOUT_API_URL, PLUGIN_CLIENT_ID, PLUGIN_CLIENT_SECRET, PORT } from './constants';
 
@@ -20,7 +21,26 @@ app.use(cors({ origin: true }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 // This line tells express to serve static files from the 'public' directory
-app.use(express.static(path.join(__dirname, 'public')));
+console.log({env: process.env.NODE_ENV})
+
+// Serve static files from the 'public' directory in production
+console.log("hello")
+if(process.env.NODE_ENV === 'production'){
+  app.use(express.static(path.join(__dirname, 'public')));
+}
+
+  if (process.env.NODE_ENV !== 'production') {
+    // Proxy requests to the client's development server in development
+    app.use(
+      '/static',
+      createProxyMiddleware({
+        target: 'http://localhost:3000', // Replace with your client's development server URL
+        changeOrigin: true,
+        secure: false,
+        ws: false, // Enable WebSocket proxying
+      })
+    );
+  }
 
 
 // Start the server and connect to the database
@@ -49,16 +69,29 @@ initializeApp().catch((error) => {
   process.exit(1);
 });
 
-app.get('/widget', async (req, res) => {
+// Route to serve the React app in production or the development server in development
+app.get('/widget', async (req, res, next) => {
   try {
-    const indexFile = await fs.readFile(path.join(__dirname, 'public', 'index.html'), 'utf-8');
+    let indexFile;
+    if (process.env.NODE_ENV === 'production') {
+      indexFile = await fs.readFile(path.join(__dirname, 'public', 'index.html'), 'utf-8');
+    } else {
+      // Proxy the request to the client's development server URL
+      const proxyReq = createProxyMiddleware({
+        target: 'http://localhost:3000', // Replace with your client's development server URL
+        changeOrigin: true,
+        secure: false,
+        ws: false, // Enable WebSocket proxying
+      });
+      proxyReq(req, res, next);
+      return;
+    }
     res.send(indexFile);
   } catch (error) {
     console.error(error);
     res.status(500).send('Internal Server Error');
   }
 });
-
 
 // Routes
 app.get('/hello', async (req, res) => {
@@ -87,27 +120,33 @@ app.post('/:shop_slug/create/external-payment', async (req, res) => {
   res.send(data);
 });
 
-app.post('/gateway/retain', (req, res) => {
+app.get('/:shop_slug/create/external-payment/:id', async (req, res) => {
+  const externalPayment = new ExternalPaymentGateways();
+  const data = await externalPayment.getExternalPaymentGateway(req.params.shop_slug);
+  res.send(data);
+});
+
+app.post('/payments/retain', (req, res) => {
   const exampleController = new ExampleController();
   exampleController.generateRetainedPaymentToken(req, res);
 });
 
-app.post('/gateway/auth', (req, res) => {
+app.post('/payments/auth', (req, res) => {
   const exampleController = new ExampleController();
   exampleController.authorizePayment(req, res);
 });
 
-app.post('/gateway/capture', (req, res) => {
+app.post('/payments/capture', (req, res) => {
   const exampleController = new ExampleController();
   exampleController.capturePayment(req, res);
 });
 
-app.post('/gateway/void', (req, res) => {
+app.post('/payments/void', (req, res) => {
   const exampleController = new ExampleController();
   exampleController.voidPayment(req, res);
 });
 
-app.post('/gateway/refund', (req, res) => {
+app.post('/payments/refund', (req, res) => {
   const exampleController = new ExampleController();
   exampleController.refundPayment(req, res);
 });

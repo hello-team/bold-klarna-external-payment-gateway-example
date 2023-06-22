@@ -8,10 +8,10 @@ export default class InitializeCheckoutEvent {
   }
 
   async handle(shop:string, order: any, cart: any): Promise<any> {
-    const klarnaSessionBody = await this.klarna.sessionBody(order, cart);
-
+    const klarnaSessionBody = await this.klarna.sessionBody(shop, order, cart);
     let session: any = await this.klarna.createSession(klarnaSessionBody);
-    console.log({session_id: session.session_id})
+    await this.klarna.updateSession(session.session_id, {merchant_data: shop, merchant_reference1: order.public_order_id})
+    console.log({session: session.session_id})
     return {
       success: true,
       actions: [
